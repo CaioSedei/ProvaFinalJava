@@ -12,6 +12,7 @@ Robo  (abstract)
 
 Combate   → duas referências Robo
 Main      → menu (estilo ProvaJava) e ArrayList<Robo>
+Campeonato → métodos que executam cada opção do menu
 ```
 
 ---
@@ -344,31 +345,31 @@ public class Main {
                     System.out.println("Adeus!");
                     break;
                 case 1:
-                    cadastrar(s, robos);
+                    Campeonato.cadastrar(s, robos);
                     break;
                 case 2:
-                    consultar(s, robos);
+                    Campeonato.consultar(s, robos);
                     break;
                 case 3:
-                    iniciarCombate(s, robos);
+                    Campeonato.iniciarCombate(s, robos);
                     break;
                 case 4:
-                    recuperarEnergia(s, robos);
+                    Campeonato.recuperarEnergia(s, robos);
                     break;
                 case 5:
-                    rodadaGeral(robos);
+                    Campeonato.rodadaGeral(robos);
                     break;
                 case 6:
-                    classificacaoGeral(robos);
+                    Campeonato.classificacaoGeral(robos);
                     break;
                 case 7:
-                    estatisticas(robos);
+                    Campeonato.estatisticas(robos);
                     break;
                 case 8:
-                    excluirRobo(s, robos);
+                    Campeonato.excluirRobo(s, robos);
                     break;
                 case 9:
-                    listar(robos);
+                    Campeonato.listar(robos);
                     break;
             }
 
@@ -393,7 +394,22 @@ public class Main {
 
         return opt;
     }
+}
+```
 
+- Só tem o menu, o `switch` e o `buscarOperacao`. Cada opção chama um método da classe `Campeonato`.
+- **Polimorfismo:** `ArrayList<Robo>` guarda Ofensivo, Defensivo e Equilibrado juntos.
+
+---
+
+## 7. Campeonato.java (métodos separados da Main)
+
+```java
+import java.util.ArrayList;
+import java.util.InputMismatchException;
+import java.util.Scanner;
+
+public class Campeonato {
     private static int lerInt(Scanner s, String mensagem) {
         int n = 0;
         boolean valido = false;
@@ -418,7 +434,7 @@ public class Main {
         return null;
     }
 
-    private static void cadastrar(Scanner s, ArrayList<Robo> robos) {
+    public static void cadastrar(Scanner s, ArrayList<Robo> robos) {
         int codigo = lerInt(s, "Código: ");
         if (buscar(robos, codigo) != null) {
             System.out.println("Já existe um Robô com esse código!");
@@ -441,18 +457,18 @@ public class Main {
         }
     }
 
-    private static void consultar(Scanner s, ArrayList<Robo> robos) {
+    public static void consultar(Scanner s, ArrayList<Robo> robos) {
         Robo r = buscar(robos, lerInt(s, "Código do Robô: "));
         if (r == null) System.out.println("Robô não Encontrado.");
         else r.exibirDados();
     }
 
-    private static void listar(ArrayList<Robo> robos) {
+    public static void listar(ArrayList<Robo> robos) {
         if (robos.isEmpty()) System.out.println("Nenhum robô cadastrado.");
         for (Robo r : robos) r.exibirDados();
     }
 
-    private static void iniciarCombate(Scanner s, ArrayList<Robo> robos) {
+    public static void iniciarCombate(Scanner s, ArrayList<Robo> robos) {
         int c1 = lerInt(s, "Código do primeiro Robô: ");
         int c2 = lerInt(s, "Código do segundo Robô: ");
         Robo r1 = buscar(robos, c1);
@@ -463,7 +479,7 @@ public class Main {
         else new Combate(r1, r2).executar();
     }
 
-    private static void recuperarEnergia(Scanner s, ArrayList<Robo> robos) {
+    public static void recuperarEnergia(Scanner s, ArrayList<Robo> robos) {
         Robo r = buscar(robos, lerInt(s, "Código do Robô: "));
         if (r == null) {
             System.out.println("Robô não Encontrado.");
@@ -480,7 +496,7 @@ public class Main {
         }
     }
 
-    private static void rodadaGeral(ArrayList<Robo> robos) {
+    public static void rodadaGeral(ArrayList<Robo> robos) {
         ArrayList<Robo> disp = new ArrayList<>();
         for (Robo r : classificar(robos)) {
             if (r.podeLutar()) disp.add(r);
@@ -520,7 +536,7 @@ public class Main {
         return c;
     }
 
-    private static void classificacaoGeral(ArrayList<Robo> robos) {
+    public static void classificacaoGeral(ArrayList<Robo> robos) {
         if (robos.isEmpty()) {
             System.out.println("Nenhum robô cadastrado.");
             return;
@@ -534,7 +550,7 @@ public class Main {
         }
     }
 
-    private static void estatisticas(ArrayList<Robo> robos) {
+    public static void estatisticas(ArrayList<Robo> robos) {
         if (robos.isEmpty()) {
             System.out.println("Nenhum robô cadastrado.");
             return;
@@ -571,7 +587,7 @@ public class Main {
         }
     }
 
-    private static void excluirRobo(Scanner s, ArrayList<Robo> robos) {
+    public static void excluirRobo(Scanner s, ArrayList<Robo> robos) {
         Robo r = buscar(robos, lerInt(s, "Código do Robô: "));
         if (r == null) System.out.println("Robô não Encontrado.");
         else if (r.getTotalCombates() > 0) System.out.println("Recusado: robôs que já lutaram não podem ser excluídos.");
@@ -593,8 +609,8 @@ public class Main {
 }
 ```
 
-- **Polimorfismo:** `ArrayList<Robo>` guarda Ofensivo, Defensivo e Equilibrado juntos. Em `cadastrar`, a variável `Robo novo` recebe um dos três tipos. `r.getTipo()` imprime o tipo certo de cada robô.
-- **Encapsulamento:** a `Main` nunca mexe nos atributos. Só usa getters e métodos como `recuperarEnergia(qtd)`, que devolve `true` ou `false`.
+- **Polimorfismo:** em `cadastrar`, a variável `Robo novo` recebe um dos três tipos. `r.getTipo()` imprime o tipo certo de cada robô.
+- **Encapsulamento:** esta classe nunca mexe nos atributos de `Robo`. Só usa getters e métodos como `recuperarEnergia(qtd)`, que devolve `true` ou `false`.
 
 ---
 

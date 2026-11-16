@@ -1,0 +1,202 @@
+import java.util.ArrayList;
+import java.util.InputMismatchException;
+import java.util.Scanner;
+
+public class Campeonato {
+    private static int lerInt(Scanner s, String mensagem) {
+        int n = 0;
+        boolean valido = false;
+        do {
+            System.out.print(mensagem);
+            try {
+                n = s.nextInt();
+                s.nextLine();
+                valido = true;
+            } catch (InputMismatchException e) {
+                s.next();
+                System.out.println("Entrada Inválida. Por favor digite um número inteiro.");
+            }
+        } while (!valido);
+        return n;
+    }
+
+    private static Robo buscar(ArrayList<Robo> robos, int codigo) {
+        for (Robo r : robos) {
+            if (r.getCodigo() == codigo) return r;
+        }
+        return null;
+    }
+
+    public static void cadastrar(Scanner s, ArrayList<Robo> robos) {
+        int codigo = lerInt(s, "Código: ");
+        if (buscar(robos, codigo) != null) {
+            System.out.println("Já existe um Robô com esse código!");
+            return;
+        }
+        System.out.print("Nome: ");
+        String nome = s.nextLine();
+        int tipo = lerTipo(s);
+        int ataque = lerInt(s, "Ataque (10 a 30): ");
+        int defesa = lerInt(s, "Defesa (0 a 20): ");
+        try {
+            Robo novo;
+            if (tipo == 1) novo = new RoboOfensivo(codigo, nome, ataque, defesa);
+            else if (tipo == 2) novo = new RoboDefensivo(codigo, nome, ataque, defesa);
+            else novo = new RoboEquilibrado(codigo, nome, ataque, defesa);
+            robos.add(novo);
+            System.out.println("Robô cadastrado com sucesso!!");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Cadastro recusado: " + e.getMessage());
+        }
+    }
+
+    public static void consultar(Scanner s, ArrayList<Robo> robos) {
+        Robo r = buscar(robos, lerInt(s, "Código do Robô: "));
+        if (r == null) System.out.println("Robô não Encontrado.");
+        else r.exibirDados();
+    }
+
+    public static void listar(ArrayList<Robo> robos) {
+        if (robos.isEmpty()) System.out.println("Nenhum robô cadastrado.");
+        for (Robo r : robos) r.exibirDados();
+    }
+
+    public static void iniciarCombate(Scanner s, ArrayList<Robo> robos) {
+        int c1 = lerInt(s, "Código do primeiro Robô: ");
+        int c2 = lerInt(s, "Código do segundo Robô: ");
+        Robo r1 = buscar(robos, c1);
+        Robo r2 = buscar(robos, c2);
+        if (c1 == c2) System.out.println("Os Robôs devem ser diferentes.");
+        else if (r1 == null || r2 == null) System.out.println("Pelo menos um dos códigos não existe.");
+        else if (!r1.podeLutar() || !r2.podeLutar()) System.out.println("Ambos precisam ter pelo menos 30 de energia.");
+        else new Combate(r1, r2).executar();
+    }
+
+    public static void recuperarEnergia(Scanner s, ArrayList<Robo> robos) {
+        Robo r = buscar(robos, lerInt(s, "Código do Robô: "));
+        if (r == null) {
+            System.out.println("Robô não Encontrado.");
+            return;
+        }
+        int qtd = lerInt(s, "Energia desejada (múltiplo de 10): ");
+        if (r.recuperarEnergia(qtd)) {
+            System.out.println("Recuperação aceita! " + r.getNome() + " agora tem energia "
+                    + r.getEnergiaAtual() + " e " + r.getPontos() + " ponto(s).");
+        } else {
+            System.out.println("Recusado: a quantidade deve ser positiva e múltipla de 10, "
+                    + "custa 1 ponto a cada 10 (você tem " + r.getPontos() + ") "
+                    + "e a energia final não pode passar de 100.");
+        }
+    }
+
+    public static void rodadaGeral(ArrayList<Robo> robos) {
+        ArrayList<Robo> disp = new ArrayList<>();
+        for (Robo r : classificar(robos)) {
+            if (r.podeLutar()) disp.add(r);
+        }
+        if (disp.size() < 2) {
+            System.out.println("Recusado: menos de 2 robôs disponíveis.");
+            return;
+        }
+        for (int i = 0; i + 1 < disp.size(); i += 2) {
+            new Combate(disp.get(i), disp.get(i + 1)).executar();
+        }
+        if (disp.size() % 2 == 1) {
+            Robo folga = disp.get(disp.size() - 1);
+            folga.registrarFolga();
+            System.out.println("\n" + folga.getNome() + " ficou de folga e ganhou 1 ponto.");
+        }
+    }
+
+    private static boolean vemAntes(Robo a, Robo b) {
+        if (a.getPontos() != b.getPontos()) return a.getPontos() > b.getPontos();
+        if (a.getVitorias() != b.getVitorias()) return a.getVitorias() > b.getVitorias();
+        if (a.getEnergiaAtual() != b.getEnergiaAtual()) return a.getEnergiaAtual() > b.getEnergiaAtual();
+        return a.getCodigo() < b.getCodigo();
+    }
+
+    private static ArrayList<Robo> classificar(ArrayList<Robo> robos) {
+        ArrayList<Robo> c = new ArrayList<>(robos);
+        for (int i = 0; i < c.size() - 1; i++) {
+            int melhor = i;
+            for (int j = i + 1; j < c.size(); j++) {
+                if (vemAntes(c.get(j), c.get(melhor))) melhor = j;
+            }
+            Robo temp = c.get(i);
+            c.set(i, c.get(melhor));
+            c.set(melhor, temp);
+        }
+        return c;
+    }
+
+    public static void classificacaoGeral(ArrayList<Robo> robos) {
+        if (robos.isEmpty()) {
+            System.out.println("Nenhum robô cadastrado.");
+            return;
+        }
+        ArrayList<Robo> t = classificar(robos);
+        System.out.println("Classificação Geral");
+        for (int i = 0; i < t.size(); i++) {
+            Robo r = t.get(i);
+            System.out.println((i + 1) + "º " + r.getNome() + " (cód " + r.getCodigo() + ", " + r.getTipo() + ") | Pts: " + r.getPontos()
+                    + " | Vit: " + r.getVitorias() + " | Energia: " + r.getEnergiaAtual() + " | " + r.getSituacao());
+        }
+    }
+
+    public static void estatisticas(ArrayList<Robo> robos) {
+        if (robos.isEmpty()) {
+            System.out.println("Nenhum robô cadastrado.");
+            return;
+        }
+        int soma = 0;
+        Robo ref = null;
+        System.out.println("Robôs cadastrados: " + robos.size());
+        System.out.println("Em recuperação:");
+        boolean algum = false;
+        for (Robo r : robos) {
+            soma += r.getEnergiaAtual();
+            if (!r.podeLutar()) {
+                System.out.println("  - " + r.getNome() + " (energia " + r.getEnergiaAtual() + ")");
+                algum = true;
+            }
+            if (r.getTotalCombates() > 0 && (ref == null
+                    || r.getVitorias() * ref.getTotalCombates() > ref.getVitorias() * r.getTotalCombates())) {
+                ref = r;
+            }
+        }
+        if (!algum) System.out.println("  Nenhum.");
+        System.out.printf("Média de energia: %.2f%n", (double) soma / robos.size());
+
+        if (ref == null) {
+            System.out.println("Maior aproveitamento: nenhum robô lutou ainda.");
+            return;
+        }
+        System.out.printf("Maior aproveitamento (%.1f%%):%n", ref.getAproveitamento());
+        for (Robo r : robos) {
+            if (r.getTotalCombates() > 0
+                    && r.getVitorias() * ref.getTotalCombates() == ref.getVitorias() * r.getTotalCombates()) {
+                System.out.println("  - " + r.getNome());
+            }
+        }
+    }
+
+    public static void excluirRobo(Scanner s, ArrayList<Robo> robos) {
+        Robo r = buscar(robos, lerInt(s, "Código do Robô: "));
+        if (r == null) System.out.println("Robô não Encontrado.");
+        else if (r.getTotalCombates() > 0) System.out.println("Recusado: robôs que já lutaram não podem ser excluídos.");
+        else {
+            robos.remove(r);
+            System.out.println("Robô excluído com sucesso.");
+        }
+    }
+
+    private static int lerTipo(Scanner s) {
+        int t;
+        do {
+            System.out.println("Tipo do Robô: [1] Ofensivo  [2] Defensivo  [3] Equilibrado");
+            t = lerInt(s, "Tipo: ");
+            if (t < 1 || t > 3) System.out.println("Tipo inválido. Escolha 1, 2 ou 3.");
+        } while (t < 1 || t > 3);
+        return t;
+    }
+}
